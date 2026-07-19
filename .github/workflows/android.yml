@@ -56,9 +56,16 @@ jobs:
           </resources>
           EOF
 
-      - name: Inject Base Core Gradle System (Resource Error Fixed)
+      - name: Inject Base Core Gradle System (AndroidX Support Added)
         run: |
           cd project_folder/android
+          
+          # [FIXED] Injecting gradle.properties to enable AndroidX and code optimization flags
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
           
           # Generating Root build.gradle
           cat << 'EOF' > build.gradle
