@@ -1,4 +1,4 @@
-name: Android APK Build
+name: Android APK Build Diagnostic
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  diagnose:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,40 +18,10 @@ jobs:
       - name: Extract Project Zip
         run: unzip aurawavex.zip -d project_folder
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install Project Dependencies
+      - name: Inspect Extracted Files
         run: |
-          npm install --legacy-peer-deps || npm install
-        working-directory: project_folder
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Android Build Tools Setup
-        uses: android-actions/setup-android@v3
-
-      - name: Build Android App (Fixed Path Approach)
-        run: |
-          chmod +x gradlew || true
-          if [ -f gradlew ]; then
-            ./gradlew assembleDebug
-          else
-            cd ..
-            npx react-native build-android --mode=debug || npx cap build android || gradle assembleDebug
-          fi
-        working-directory: project_folder/android
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: |
-            project_folder/android/app/build/outputs/apk/debug/*.apk
-            
+          echo "=== ROOT FILES ==="
+          ls -la project_folder/
+          echo "=== FINDING GRADLE AND CONFIG FILES ==="
+          find project_folder -name "build.gradle" -o -name "package.json" -o -name "gradlew"
+          
