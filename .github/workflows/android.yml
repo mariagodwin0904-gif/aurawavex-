@@ -37,9 +37,9 @@ jobs:
       - name: Android Build Tools Setup
         uses: android-actions/setup-android@v3
 
-      - name: Build Android App (Root Approach)
+      - name: Build Android App (Fixed Path Approach)
         run: |
-          cd android && chmod +x gradlew || true
+          chmod +x gradlew || true
           if [ -f gradlew ]; then
             ./gradlew assembleDebug
           else
