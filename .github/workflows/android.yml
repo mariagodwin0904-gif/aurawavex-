@@ -18,17 +18,12 @@ jobs:
       - name: Extract Project Zip
         run: unzip aurawavex.zip -d project_folder
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
       - name: Inject Android Architecture Manifest and Resource
         run: |
-          mkdir -p project_folder/android/app/src/main/res/values
+          # Create standard Android directories inside the dynamic workspace
+          mkdir -p project_folder/app/src/main/res/values
           
-          cat << 'EOF' > project_folder/android/app/src/main/AndroidManifest.xml
+          cat << 'EOF' > project_folder/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
               package="com.aurawavex.app">
               <uses-permission android:name="android.permission.INTERNET" />
@@ -48,7 +43,7 @@ jobs:
           </manifest>
           EOF
 
-          cat << 'EOF' > project_folder/android/app/src/main/res/values/styles.xml
+          cat << 'EOF' > project_folder/app/src/main/res/values/styles.xml
           <resources>
               <style name="Theme.Aurawavex" parent="android:Theme.Material.NoActionBar" />
           </resources>
@@ -56,37 +51,47 @@ jobs:
 
       - name: Hotfix and Clean Broken AI Source Codes
         run: |
-          # Target paths for extracted source files causing build failure
-          HOME_SCREEN="project_folder/android/app/src/main/java/com/aurawavex/app/ui/screens/HomeScreen.kt"
-          THEME_FILE="project_folder/android/app/src/main/java/com/aurawavex/app/ui/theme/Theme.kt"
+          # Realigned direct source targets mapping your exact project structure layout
+          HOME_SCREEN="project_folder/app/java/com/aurawavex/app/ui/screens/HomeScreen.kt"
+          THEME_FILE="project_folder/app/java/com/aurawavex/app/ui/theme/Theme.kt"
           
           echo "==== Executing Source Sanitization Workflow ===="
           
-          # Replace failing parameters in HomeScreen UI layout components
           if [ -f "$HOME_SCREEN" ]; then
             sed -i 's/top =/modifier = Modifier.padding(top =/g' "$HOME_SCREEN" 2>/dev/null || true
             sed -i 's/width =/modifier = Modifier.width(/g' "$HOME_SCREEN" 2>/dev/null || true
             sed -i 's/Unresolved reference: Map/ /g' "$HOME_SCREEN" 2>/dev/null || true
           fi
           
-          # Inject full programmatic fallback overlay for broken compose setups
+          # Exact case match (AuraWaveXTheme) injected seamlessly
           if [ -f "$THEME_FILE" ]; then
-            cat << 'EOF' > "$THEME_FILE"
-            package com.aurawavex.app.ui.theme
-            import androidx.compose.material3.MaterialTheme
-            import androidx.compose.runtime.Composable
-            @Composable
-            fun AurawavexTheme(content: @Composable () -> Unit) {
-                MaterialTheme(content = content)
-            }
-            EOF
+            echo -e "package com.aurawavex.app.ui.theme\nimport androidx.compose.material3.MaterialTheme\nimport androidx.compose.runtime.Composable\n@Composable\nfun AuraWaveXTheme(content: @Composable () -> Unit) {\n    MaterialTheme(content = content)\n}" > "$THEME_FILE"
           fi
           
           echo "==== Sanitization Completed Successfully ===="
 
+      - name: Normalize Project Workspace Structure
+        run: |
+          # Restructure from simulated AI engine structure to native Android structure
+          mkdir -p project_folder/app/src/main/java/com/aurawavex/app
+          
+          # Move java packages recursively safely
+          cp -r project_folder/app/java/com/aurawavex/app/* project_folder/app/src/main/java/com/aurawavex/app/ 2>/dev/null || true
+          
+          # Move MainActivity from the parent app folder to its proper nested package destination
+          if [ -f "project_folder/app/MainActivity.kt" ]; then
+            mv project_folder/app/MainActivity.kt project_folder/app/src/main/java/com/aurawavex/app/
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
       - name: Inject Base Core Gradle System
         run: |
-          cd project_folder/android
+          cd project_folder
           
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
@@ -169,16 +174,16 @@ jobs:
 
       - name: Execute Android Wrapper Generation
         run: gradle wrapper --gradle-version 8.5
-        working-directory: project_folder/android
+        working-directory: project_folder
 
       - name: Compile and Build APK
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon -x test
-        working-directory: project_folder/android
+        working-directory: project_folder
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: project_folder/android/app/build/outputs/apk/debug/*.apk
+          path: project_folder/app/build/outputs/apk/debug/*.apk
