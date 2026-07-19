@@ -1,4 +1,4 @@
-name: Android APK Build Diagnostic
+name: Android APK Build
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  diagnose:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,10 +18,141 @@ jobs:
       - name: Extract Project Zip
         run: unzip aurawavex.zip -d project_folder
 
-      - name: Inspect Extracted Files
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Inject Android Architecture Manifest and Resource
         run: |
-          echo "=== ROOT FILES ==="
-          ls -la project_folder/
-          echo "=== FINDING GRADLE AND CONFIG FILES ==="
-          find project_folder -name "build.gradle" -o -name "package.json" -o -name "gradlew"
+          mkdir -p project_folder/android/app/src/main/res/values
+          
+          # Injecting absolute minimal AndroidManifest if missing
+          cat << 'EOF' > project_folder/android/app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.aurawavex.app">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:label="aurawavex"
+                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # Injecting essential build configuration styles
+          cat << 'EOF' > project_folder/android/app/src/main/res/values/styles.xml
+          <resources>
+              <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.Material3.DayNight.NoActionBar" />
+          </resources>
+          EOF
+
+      - name: Inject Base Core Gradle System
+        run: |
+          cd project_folder/android
+          
+          # Generating Root build.gradle Buildscript
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.2'
+                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
+
+          # Generating Project Settings Routing
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "aurawavex"
+          include ':app'
+          EOF
+
+          # Generating App module Build configurations with Compose Dependencies
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
+          android {
+              namespace 'com.aurawavex.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.aurawavex.app"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+              buildFeatures { compose true }
+              composeOptions {
+                  kotlinCompilerExtensionVersion '1.5.8'
+              }
+          }
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.12.0'
+              implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+              implementation 'androidx.activity:activity-compose:1.8.2'
+              implementation platform('androidx.compose:compose-bom:2023.08.00')
+              implementation 'androidx.compose.ui:ui'
+              implementation 'androidx.compose.ui:ui-graphics'
+              implementation 'androidx.compose.ui:ui-tooling-preview'
+              implementation 'androidx.compose.material3:material3'
+          }
+          EOF
+
+      - name: Execute Android Wrapper Generation
+        run: gradle wrapper --gradle-version 8.5
+        working-directory: project_folder/android
+
+      - name: Compile and Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+        working-directory: project_folder/android
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: project_folder/android/app/build/outputs/apk/debug/*.apk
           
