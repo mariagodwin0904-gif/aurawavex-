@@ -1,189 +1,51 @@
-name: Android APK Build
+package com.aurawavex.app
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
+import com.aurawavex.app.ui.theme.AuraWaveXTheme
+import com.aurawavex.app.navigation.AuraWaveXNavigation
+import com.aurawavex.app.viewmodel.AudioViewModel
+import com.aurawavex.app.viewmodel.DacViewModel
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+/**
+ * MainActivity
+ * Entry point for AuraWaveX.
+ * Configures edge-to-edge rendering, initializes core view models, and bootstraps the AuraWaveX navigation graph.
+ * 
+ * Powered by HoloCore™
+ * Developed by Chrissy Godwin
+ */
+class MainActivity : ComponentActivity() {
+    
+    private val audioViewModel: AudioViewModel by viewModels()
+    private val dacViewModel: DacViewModel by viewModels()
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Enable edge-to-edge system bars integration
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
-      - name: Extract Project Zip
-        run: unzip aurawavex.zip -d project_folder
-
-      - name: Inject Android Architecture Manifest and Resource
-        run: |
-          # Create standard Android directories inside the dynamic workspace
-          mkdir -p project_folder/app/src/main/res/values
-          
-          cat << 'EOF' > project_folder/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.aurawavex.app">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <application
-                  android:allowBackup="true"
-                  android:label="aurawavex"
-                  android:theme="@style/Theme.Aurawavex">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat << 'EOF' > project_folder/app/src/main/res/values/styles.xml
-          <resources>
-              <style name="Theme.Aurawavex" parent="android:Theme.Material.NoActionBar" />
-          </resources>
-          EOF
-
-      - name: Hotfix and Clean Broken AI Source Codes
-        run: |
-          # Realigned direct source targets mapping your exact project structure layout
-          HOME_SCREEN="project_folder/app/java/com/aurawavex/app/ui/screens/HomeScreen.kt"
-          THEME_FILE="project_folder/app/java/com/aurawavex/app/ui/theme/Theme.kt"
-          
-          echo "==== Executing Source Sanitization Workflow ===="
-          
-          if [ -f "$HOME_SCREEN" ]; then
-            sed -i 's/top =/modifier = Modifier.padding(top =/g' "$HOME_SCREEN" 2>/dev/null || true
-            sed -i 's/width =/modifier = Modifier.width(/g' "$HOME_SCREEN" 2>/dev/null || true
-            sed -i 's/Unresolved reference: Map/ /g' "$HOME_SCREEN" 2>/dev/null || true
-          fi
-          
-          # Exact case match (AuraWaveXTheme) injected seamlessly
-          if [ -f "$THEME_FILE" ]; then
-            echo -e "package com.aurawavex.app.ui.theme\nimport androidx.compose.material3.MaterialTheme\nimport androidx.compose.runtime.Composable\n@Composable\nfun AuraWaveXTheme(content: @Composable () -> Unit) {\n    MaterialTheme(content = content)\n}" > "$THEME_FILE"
-          fi
-          
-          echo "==== Sanitization Completed Successfully ===="
-
-      - name: Normalize Project Workspace Structure
-        run: |
-          # Restructure from simulated AI engine structure to native Android structure
-          mkdir -p project_folder/app/src/main/java/com/aurawavex/app
-          
-          # Move java packages recursively safely
-          cp -r project_folder/app/java/com/aurawavex/app/* project_folder/app/src/main/java/com/aurawavex/app/ 2>/dev/null || true
-          
-          # Move MainActivity from the parent app folder to its proper nested package destination
-          if [ -f "project_folder/app/MainActivity.kt" ]; then
-            mv project_folder/app/MainActivity.kt project_folder/app/src/main/java/com/aurawavex/app/
-          fi
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Inject Base Core Gradle System
-        run: |
-          cd project_folder
-          
-          cat << 'EOF' > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          EOF
-          
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
-              }
-          }
-          EOF
-
-          cat << 'EOF' > settings.gradle
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "aurawavex"
-          include ':app'
-          EOF
-
-          cat << 'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
-          }
-          android {
-              namespace 'com.aurawavex.app'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.aurawavex.app"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = '17'
-                  freeCompilerArgs += ["-Xskip-prerelease-check", "-Xallow-unstable-dependencies"]
-              }
-              buildFeatures { compose true }
-              composeOptions {
-                  kotlinCompilerExtensionVersion '1.5.8'
-              }
-          }
-          dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-              implementation 'androidx.activity:activity-compose:1.8.2'
-              implementation platform('androidx.compose:compose-bom:2023.08.00')
-              implementation 'androidx.compose.ui:ui'
-              implementation 'androidx.compose.ui:ui-graphics'
-              implementation 'androidx.compose.ui:ui-tooling-preview'
-              implementation 'androidx.compose.material3:material3'
-              implementation 'androidx.navigation:navigation-compose:2.7.7'
-          }
-          EOF
-
-      - name: Execute Android Wrapper Generation
-        run: gradle wrapper --gradle-version 8.5
-        working-directory: project_folder
-
-      - name: Compile and Build APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -x test
-        working-directory: project_folder
-
-      - name: Upload Finished APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: project_folder/app/build/outputs/apk/debug/*.apk
+        setContent {
+            AuraWaveXTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AuraWaveXNavigation(
+                        audioViewModel = audioViewModel,
+                        dacViewModel = dacViewModel
+                    )
+                }
+            }
+        }
+    }
+}
