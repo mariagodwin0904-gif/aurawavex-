@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p project_folder/android/app/src/main/res/values
           
-          # Injecting absolute minimal AndroidManifest if missing
+          # Injecting minimal AndroidManifest with correct theme reference
           cat << 'EOF' > project_folder/android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
               package="com.aurawavex.app">
@@ -36,7 +36,7 @@ jobs:
               <application
                   android:allowBackup="true"
                   android:label="aurawavex"
-                  android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  android:theme="@style/Theme.Aurawavex">
                   <activity
                       android:name=".MainActivity"
                       android:exported="true">
@@ -49,18 +49,18 @@ jobs:
           </manifest>
           EOF
 
-          # Injecting essential build configuration styles
+          # Injecting pure Material3 empty theme to support Jetpack Compose UI components
           cat << 'EOF' > project_folder/android/app/src/main/res/values/styles.xml
           <resources>
-              <style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.Material3.DayNight.NoActionBar" />
+              <style name="Theme.Aurawavex" parent="android:Theme.Material.NoActionBar" />
           </resources>
           EOF
 
-      - name: Inject Base Core Gradle System (Fixed Repository Clash)
+      - name: Inject Base Core Gradle System (Resource Error Fixed)
         run: |
           cd project_folder/android
           
-          # Generating Root build.gradle WITHOUT redundant repositories block
+          # Generating Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -74,7 +74,7 @@ jobs:
           }
           EOF
 
-          # Generating Project Settings Routing with proper configuration mode
+          # Generating Project Settings Routing
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -94,7 +94,7 @@ jobs:
           include ':app'
           EOF
 
-          # Generating App module Build configurations with Compose Dependencies
+          # Generating App module Build configurations
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -141,7 +141,7 @@ jobs:
       - name: Compile and Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon
         working-directory: project_folder/android
 
       - name: Upload Finished APK
