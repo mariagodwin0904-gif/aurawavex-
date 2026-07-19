@@ -23,10 +23,10 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build APK with Gradle
-        run: |
-          cd project_folder/android
-          gradle assembleDebug
+            - name: Build APK with Gradle
+        run: ./gradlew assembleDebug
+        working-directory: project_folder/android
+
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
