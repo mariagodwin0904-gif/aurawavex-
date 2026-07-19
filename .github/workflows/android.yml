@@ -56,11 +56,11 @@ jobs:
           </resources>
           EOF
 
-      - name: Inject Base Core Gradle System
+      - name: Inject Base Core Gradle System (Fixed Repository Clash)
         run: |
           cd project_folder/android
           
-          # Generating Root build.gradle Buildscript
+          # Generating Root build.gradle WITHOUT redundant repositories block
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -72,15 +72,9 @@ jobs:
                   classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
               }
           }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
           EOF
 
-          # Generating Project Settings Routing
+          # Generating Project Settings Routing with proper configuration mode
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -90,7 +84,7 @@ jobs:
               }
           }
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
               repositories {
                   google()
                   mavenCentral()
