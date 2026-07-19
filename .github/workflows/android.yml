@@ -18,27 +18,40 @@ jobs:
       - name: Extract Project Zip
         run: unzip aurawavex.zip -d project_folder
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Project Dependencies
+        run: |
+          npm install --legacy-peer-deps || npm install
+        working-directory: project_folder
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Android Build Tools Setup
+        uses: android-actions/setup-android@v3
 
-      - name: Initialize Gradle in Project
+      - name: Build Android App (Root Approach)
         run: |
-          gradle init --type basic --dsl groovy --incubating
-        working-directory: project_folder/android
-
-      - name: Build APK using Global Gradle
-        run: gradle assembleDebug --stacktrace
+          cd android && chmod +x gradlew || true
+          if [ -f gradlew ]; then
+            ./gradlew assembleDebug
+          else
+            cd ..
+            npx react-native build-android --mode=debug || npx cap build android || gradle assembleDebug
+          fi
         working-directory: project_folder/android
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: project_folder/android/app/build/outputs/apk/debug/app-debug.apk
-          
+          path: |
+            project_folder/android/app/build/outputs/apk/debug/*.apk
+            
